@@ -133,6 +133,8 @@ function App(){
         try{
             const geoName=ALL.find(x=>x.c===sel.geo)?.n||sel.geo;
             const ages=Array.from({length:Math.max(0,sel.a1-sel.a0+1)},(_,i)=>(sel.a0+i).toString());
+            // SCB-tabellerna slår ihop de äldsta åldrarna: befolkning har '100+', utbildning '95+'
+            const capAges=(max)=>ages.map(a=>parseInt(a)>=max?`${max}+`:a).filter((v,i,a)=>a.indexOf(v)===i);
             const gv=sel.g==='all'?['1','2']:[sel.g];
 
             setMsg('Hämtar befolkning och civilståndsdata…');
@@ -140,7 +142,7 @@ function App(){
                 query:[
                     {code:'Region',selection:{filter:'item',values:[sel.geo]}},
                     {code:'Civilstand',selection:{filter:'item',values:['OG','G','SK','ÄNKL']}},
-                    {code:'Alder',selection:{filter:'item',values:ages}},
+                    {code:'Alder',selection:{filter:'item',values:capAges(100)}},
                     {code:'Kon',selection:{filter:'item',values:gv}},
                     {code:'ContentsCode',selection:{filter:'item',values:['BE0101N1']}},
                     {code:'Tid',selection:{filter:'item',values:['2024']}}
@@ -164,7 +166,7 @@ function App(){
             let edu=null;
             if(fi.edu){
                 setMsg('Hämtar utbildningsdata…');
-                const useGroups=ages.filter(a=>parseInt(a)>=16&&parseInt(a)<=95);
+                const useGroups=capAges(95).filter(a=>parseInt(a)>=16);
                 if(useGroups.length===0) useGroups.push(...['25','30','35','40','45','50']);
                 const d=await scb(URLS.edu,{
                     query:[
@@ -190,7 +192,7 @@ function App(){
             let bgd=null;
             if(fi.bg){
                 setMsg('Hämtar bakgrundsdata…');
-                const bgAges=ages.map(a=>parseInt(a)>=100?'100+':a).filter((v,i,a)=>a.indexOf(v)===i);
+                const bgAges=capAges(100);
                 const d=await scb(URLS.bg,{
                     query:[
                         {code:'Region',selection:{filter:'item',values:[sel.geo]}},
@@ -275,8 +277,8 @@ function App(){
             <div style={{marginBottom:12}}>
                 <label className="lbl">Åldersintervall</label>
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:7}}>
-                    <div><div style={{fontSize:10,color:'#7a9e96',marginBottom:3}}>Från</div><input type="number" className="inp" min={0} max={99} value={sel.a0} onChange={e=>setSel({...sel,a0:parseInt(e.target.value)||0})}/></div>
-                    <div><div style={{fontSize:10,color:'#7a9e96',marginBottom:3}}>Till</div><input type="number" className="inp" min={0} max={99} value={sel.a1} onChange={e=>setSel({...sel,a1:parseInt(e.target.value)||0})}/></div>
+                    <div><div style={{fontSize:10,color:'#7a9e96',marginBottom:3}}>Från</div><input type="number" className="inp" min={0} max={100} value={sel.a0} onChange={e=>setSel({...sel,a0:Math.min(100,parseInt(e.target.value)||0)})}/></div>
+                    <div><div style={{fontSize:10,color:'#7a9e96',marginBottom:3}}>Till</div><input type="number" className="inp" min={0} max={100} value={sel.a1} onChange={e=>setSel({...sel,a1:Math.min(100,parseInt(e.target.value)||0)})}/></div>
                 </div>
             </div>
             <div style={{marginBottom:18}}>
